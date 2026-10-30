@@ -4,13 +4,11 @@
 """Build the explicitly supported musl subset, without Linux ABI objects."""
 
 import argparse
-from concurrent.futures import ThreadPoolExecutor
-import hashlib
-import json
 import os
 from pathlib import Path
 import shutil
 import subprocess
+import sys
 
 ROOT = Path(__file__).resolve().parents[1]
 SOURCES = (
@@ -92,40 +90,10 @@ def build(sdk, output, install=False, jobs=4):
         sdk / "include",
     ]
     flags += [arg for path in includes for arg in ("-I", str(path))]
-    fingerprint = hashlib.sha256(json.dumps(flags).encode())
-    fingerprint.update(subprocess.check_output([compiler, "--version"]))
-    inputs = {ROOT / source for source in SOURCES}
-    inputs.add(Path(__file__))
-    for directory in includes:
-        inputs.update(path for path in directory.rglob("*") if path.is_file())
-    for path in sorted(inputs):
-        fingerprint.update(str(path).encode())
-        fingerprint.update(path.read_bytes())
-    stamp, archive = output / "build.sha256", output / "libc.a"
-    if (
-        not archive.exists()
-        or not stamp.exists()
-        or stamp.read_text() != fingerprint.hexdigest()
-    ):
-
-        def compile_source(source):
-            obj = output / (source.replace("/", "_") + ".o")
-            subprocess.run(
-                flags + ["-c", str(ROOT / source), "-o", str(obj)], check=True
-            )
-            return str(obj)
-
-        with ThreadPoolExecutor(max_workers=jobs) as pool:
-            objects = list(pool.map(compile_source, SOURCES))
-        temporary = output / "libc.tmp.a"
-        temporary.unlink(missing_ok=True)
-        archiver = os.environ.get(
-            "LLVM_AR",
-            str(Path(shutil.which(compiler) or compiler).with_name("llvm-ar")),
-        )
-        subprocess.run([archiver, "rcs", str(temporary)] + objects, check=True)
-        temporary.replace(archive)
-        stamp.write_text(fingerprint.hexdigest())
+    sys.path.insert(0, str(sdk / "share/hyper"))
+    from native_library import build_archive
+    archive = build_archive(ROOT, sdk, output, "libc.a", flags,
+                            [ROOT / name for name in SOURCES], includes, jobs=jobs)
     if install:
         shutil.copytree(headers, sdk / "include", dirs_exist_ok=True)
         shutil.copyfile(archive, sdk / "lib/libc.a")
