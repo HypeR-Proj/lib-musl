@@ -1,13 +1,21 @@
+#ifdef HYPER_MUSL_STRING_ONLY
+#include "string_scan.h"
+#else
 #include "stdio_impl.h"
-#include "intscan.h"
 #include "shgetc.h"
+#endif
+#include "intscan.h"
 #include <inttypes.h>
 #include <limits.h>
 #include <ctype.h>
 
 static unsigned long long strtox(const char *s, char **p, int base, unsigned long long lim)
 {
+#ifdef HYPER_MUSL_STRING_ONLY
+	struct hyper_string_scan f;
+#else
 	FILE f;
+#endif
 	sh_fromstring(&f, s);
 	shlim(&f, 0);
 	unsigned long long y = __intscan(&f, base, 1, lim);

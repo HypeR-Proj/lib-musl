@@ -1,7 +1,11 @@
 #include <limits.h>
 #include <errno.h>
 #include <ctype.h>
+#ifdef HYPER_MUSL_STRING_ONLY
+#include "string_scan.h"
+#else
 #include "shgetc.h"
+#endif
 
 /* Lookup table for digit values. -1==255>=36 -> invalid */
 static const unsigned char table[] = { -1,
@@ -23,7 +27,11 @@ static const unsigned char table[] = { -1,
 -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
 };
 
+#ifdef HYPER_MUSL_STRING_ONLY
+unsigned long long __intscan(struct hyper_string_scan *f, unsigned base, int pok, unsigned long long lim)
+#else
 unsigned long long __intscan(FILE *f, unsigned base, int pok, unsigned long long lim)
+#endif
 {
 	const unsigned char *val = table+1;
 	int c, neg=0;
