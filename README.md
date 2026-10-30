@@ -10,7 +10,7 @@ The [upstream identity](UPSTREAM.json) records the verified source archive.
 musl retains its [MIT license and notices](COPYRIGHT); new Native adapters use
 Apache-2.0. No Linux syscall, pthread, allocator or loader implementation is built.
 
-The SDK installs `libc.a` and C headers. HypeR's existing `libhyper` owns startup,
+The SDK installs `libc.a` and C headers. HypeR's existing `libsystem` owns startup,
 the heap, basic memory/string functions and Native threads. This port reuses
 that ownership and adds musl's character classification, string operations,
 integer conversions, sorting/searching, C-locale error messages, per-thread
@@ -21,7 +21,7 @@ The integer scanner is adapted to read strings directly, retaining musl's
 conversion and overflow logic without importing file-descriptor stdio.
 The supported implementation list is [SOURCES](hyper/build.py); the basic
 memory and allocation functions come from the
-[Native runtime](https://github.com/HypeR-Proj/libc).
+[Native runtime](https://github.com/HypeR-Proj/lib-system).
 
 This is not a complete hosted C/POSIX implementation. File-descriptor stdio,
 formatted input/output, floating-point string conversion, the math library,
