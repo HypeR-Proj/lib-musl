@@ -16,6 +16,9 @@ HERE = Path(__file__).resolve().parent
 
 def check(workspace):
     workspace = workspace.resolve()
+    build_output = Path(
+        os.environ.get("HYPER_BUILD_OUTPUT", os.environ.get("OUT", workspace / "out"))
+    ).resolve()
     compiler = os.environ.get("HYPER_CLANG", os.environ.get("CLANG", "clang"))
     linker = subprocess.check_output(
         ["sh", str(workspace / "scripts/find-llvm-tool.sh"), "ld.lld"], text=True
@@ -24,11 +27,13 @@ def check(workspace):
     build = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(build)
     for arch in ("aarch64", "riscv64"):
-        subprocess.run(["make", "sdk", f"ARCH={arch}"], cwd=workspace, check=True)
-        sdk, output = (
-            workspace / f"target/sdk/{arch}",
-            workspace / f"target/lib-musl-test/{arch}",
+        sdk = build_output / "sdk" / arch
+        subprocess.run(
+            ["make", "sdk", f"ARCH={arch}", f"SDK_OUTPUT={sdk}"],
+            cwd=workspace,
+            check=True,
         )
+        output = build_output / "build/lib-musl/checks" / arch
         output.mkdir(parents=True, exist_ok=True)
         environment = {
             **os.environ,
@@ -79,7 +84,7 @@ def check(workspace):
             flush=True,
         )
         return
-    host = workspace / "target/lib-musl-test/host"
+    host = build_output / "build/lib-musl/checks/host"
     host.mkdir(parents=True, exist_ok=True)
     native_arch = {"arm64": "aarch64", "AMD64": "x86_64"}.get(
         platform.machine(), platform.machine()
