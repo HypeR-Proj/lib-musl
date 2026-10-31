@@ -19,5 +19,37 @@
       "CONTRIBUTING.md",
       "SECURITY.md"
     ]
+  },
+  "artifacts": [
+    {
+      "source": "{apps}/c-standard-test",
+      "destination": "bin/c-standard-test",
+      "mode": "0755",
+      "profiles": [
+        "development"
+      ],
+      "environment": "system"
+    }
+  ],
+  "build": {
+    "makefile": "Makefile.upstream",
+    "actions": {
+      "all": [
+        [
+          "make",
+          "-C",
+          "{workspace}",
+          "sdk"
+        ]
+      ],
+      "build": [
+        [
+          "make",
+          "-C",
+          "{workspace}",
+          "sdk"
+        ]
+      ]
+    }
   }
 }
