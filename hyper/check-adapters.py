@@ -26,7 +26,7 @@ def check(workspace, output):
     # Never interpose test adapters on the host C runtime's own startup/cleanup.
     names = ('getenv getpagesize sysconf sched_yield gettimeofday clock_gettime '
              'clock_nanosleep nanosleep sleep usleep thrd_sleep thrd_yield '
-             'chdir getcwd realpath unlink rmdir rename link symlink readlink truncate').split()
+             'chdir getcwd realpath unlink rmdir remove rename link symlink readlink truncate').split()
     command = [os.environ.get('HOST_CC', 'cc'),
                '-std=c17', '-D_GNU_SOURCE=1', '-O1', '-g', '-fno-builtin',
                '-Wall', '-Wextra', '-Werror', '-fsanitize=undefined',

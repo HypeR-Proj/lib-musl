@@ -58,7 +58,7 @@ static int paths(void)
 	CHECK(!symlink(original, symbolic));
 	memset(contents, '!', sizeof(contents));
 	CHECK(readlink(symbolic, contents, 4) == 4 && !memcmp(contents, "/tmp!", 5));
-	CHECK(!unlink(symbolic) && !unlink(original));
+	CHECK(!remove(symbolic) && !unlink(original));
 	CHECK(!hyper_handle_close(opened.value0));
 	CHECK(!hyper_directory_create_directory(root, other, strlen(other), 0700).status);
 	char *old = getcwd(NULL, 0);
@@ -68,6 +68,8 @@ static int paths(void)
 	CHECK(!chdir(old));
 	free(current); free(old);
 	CHECK(!rmdir(other));
+	CHECK(!hyper_directory_create_directory(root, other, strlen(other), 0700).status);
+	CHECK(!remove(other));
 	CHECK(!hyper_handle_close(root));
 	return 0;
 }

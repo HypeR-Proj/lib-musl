@@ -90,6 +90,12 @@ static int remove_path(const char *path, uint32_t directory_only)
 int unlink(const char *path) { return remove_path(path, 0); }
 int rmdir(const char *path) { return remove_path(path, 1); }
 
+int remove(const char *path)
+{
+	if (!unlink(path)) return 0;
+	return errno == EISDIR ? rmdir(path) : -1;
+}
+
 static int move_path(const char *from, const char *to, int hardlink)
 {
 	size_t from_length, to_length;

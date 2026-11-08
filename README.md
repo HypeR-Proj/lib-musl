@@ -23,7 +23,7 @@ The Native adapters also provide:
 - `gettimeofday`, `nanosleep`, `sleep`, `usleep`, `clock_nanosleep`, and the
   standalone C11 `thrd_sleep` / `thrd_yield` operations;
 - `sched_yield`, `getpagesize`, and `sysconf(_SC_PAGESIZE)`;
-- `chdir`, `getcwd`, `realpath`, `unlink`, `rmdir`, `rename`, `link`, `symlink`,
+- `chdir`, `getcwd`, `realpath`, `unlink`, `rmdir`, `remove`, `rename`, `link`, `symlink`,
   `readlink`, and pathname-based `truncate`; and
 - UTC `gmtime` / `gmtime_r`, `timegm`, and `difftime` without a timezone loader.
 
@@ -39,6 +39,7 @@ Path operations share libsystem's cwd and delegated root, including its UTF-8
 path rules and capability checks. A two-path operation uses one cwd snapshot.
 `getcwd(NULL, 0)` and `realpath(path, NULL)` allocate a result that the caller
 frees. `readlink` returns a possibly truncated prefix without a terminator.
+`link` retains Native's regular-file-only hard-link support.
 Backend errors and unavailable operations propagate through errno. No fd table,
 filesystem permission emulation, or additional ambient authority is introduced.
 `getenv` does not publish mutable `environ` or implement environment mutation.

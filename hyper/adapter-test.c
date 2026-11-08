@@ -30,7 +30,7 @@ static const char *canonical_path = "/tmp/example";
 static const char *link_target = "../destination";
 static uint32_t remove_option;
 static uint64_t resized;
-static int corrupt_path, reject_absolute;
+static int corrupt_path, reject_absolute, remove_directory;
 static hyper_call_result_t result(int64_t status, uint64_t value) { return (hyper_call_result_t){status, value, 0}; }
 hyper_call_result_t hyper_clock_get_monotonic(void) { return result(clock_status, now); }
 hyper_native_status_t hyper_thread_sleep(uint64_t until) { deadline = until; ++sleeps; now += 100; return sleep_status; }
@@ -69,7 +69,10 @@ hyper_call_result_t hyper_directory_read_link(hyper_native_handle_t dir, const v
     memcpy(out, link_target, length); return result(0, length);
 }
 hyper_call_result_t hyper_directory_remove(hyper_native_handle_t dir, const void *path, size_t size, uint32_t options)
-{ (void)dir; (void)path; (void)size; remove_option = options; return result(operation_status, 0); }
+{
+    (void)dir; (void)path; (void)size; remove_option = options;
+    return result(remove_directory && !options ? HYPER_NATIVE_STATUS_IS_DIRECTORY : operation_status, 0);
+}
 hyper_call_result_t hyper_directory_rename(hyper_native_handle_t dir, const void *from, size_t n, hyper_native_handle_t other, const void *to, size_t m)
 {
     (void)n; (void)m;
@@ -139,6 +142,10 @@ int main(void)
     CHECK(unlink("missing") == -1 && errno == ENOENT);
     operation_status = HYPER_NATIVE_STATUS_READ_ONLY; CHECK(rmdir("d") == -1 && errno == EROFS && remove_option == 1);
     operation_status = 0; CHECK(!unlink("x") && remove_option == 0);
+    CHECK(!remove("file") && remove_option == 0);
+    remove_directory = 1; CHECK(!remove("dir") && remove_option == 1); remove_directory = 0;
+    operation_status = HYPER_NATIVE_STATUS_ACCESS_DENIED;
+    CHECK(remove("denied") == -1 && errno == EACCES && remove_option == 0); operation_status = 0;
     unsigned before = acquisitions; CHECK(!rename("relative", "other") && acquisitions == before + 1);
     before = acquisitions; CHECK(!rename("/absolute", "/other") && acquisitions == before + 1);
     before = acquisitions; CHECK(!rename("relative", "/absolute") && acquisitions == before + 2);
