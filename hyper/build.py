@@ -11,6 +11,8 @@ import subprocess
 import sys
 
 ROOT = Path(__file__).resolve().parents[1]
+NATIVE_SOURCES = ["hyper/platform.c", "hyper/environment.c", "hyper/system.c",
+                  "hyper/time.c", "hyper/path.c"]
 SOURCES = (
     [
         "src/ctype/" + name + ".c"
@@ -26,7 +28,10 @@ SOURCES = (
         "src/stdlib/" + name + ".c"
         for name in "abs labs llabs div ldiv lldiv atoi atol atoll bsearch qsort qsort_nr strtol".split()
     ]
-    + ["src/internal/intscan.c", "hyper/platform.c", "hyper/strerror.c"]
+    + ["src/time/" + name + ".c" for name in
+       "gmtime gmtime_r timegm __secs_to_tm __tm_to_secs __year_to_secs __month_to_secs".split()]
+    + ["src/internal/intscan.c", "hyper/strerror.c", "hyper/utc.c"]
+    + NATIVE_SOURCES
 )
 
 
