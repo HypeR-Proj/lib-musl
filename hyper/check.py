@@ -19,6 +19,9 @@ def check(workspace):
     build_output = Path(
         os.environ.get("HYPER_BUILD_OUTPUT", os.environ.get("OUT", workspace / "out"))
     ).resolve()
+    subprocess.run([sys.executable, str(HERE / "check-adapters.py"),
+                    "--workspace", str(workspace), "--output",
+                    str(build_output / "build/lib-musl/checks/adapters")], check=True)
     compiler = os.environ.get("HYPER_CLANG", os.environ.get("CLANG", "clang"))
     linker = subprocess.check_output(
         ["sh", str(workspace / "scripts/find-llvm-tool.sh"), "ld.lld"], text=True
@@ -125,6 +128,7 @@ def check(workspace):
     flags = [
         compiler,
         "-std=c17",
+        "-D_GNU_SOURCE=1",
         "-D_XOPEN_SOURCE=700",
         "-DHYPER_MUSL_STRING_ONLY=1",
         "-fno-builtin",
@@ -134,7 +138,7 @@ def check(workspace):
     files = [
         str(build.ROOT / source)
         for source in build.SOURCES
-        if source != "hyper/platform.c"
+        if source not in build.NATIVE_SOURCES
     ]
     subprocess.run(
         flags + files + [str(errno), str(HERE / "test.c"), "-o", str(host / "test")],
