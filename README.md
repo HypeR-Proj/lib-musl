@@ -79,3 +79,16 @@ The module tests exercise adapter errors and boundary cases on the host with
 UBSan, run musl algorithms on Linux hosts, build both Native targets,
 and verify supported links and rejected unsupported calls. System tests run
 the same C probe inside HypeR. F2FS remains a separate consumer of this public SDK.
+
+### Secure randomness
+
+The Native subset provides `getrandom` and `getentropy` through lib-system's
+optional random-service capability. Initialized I/O VM Linux randomness is the
+source; no weak fallback or kernel random syscall is introduced. `getrandom`
+accepts only `GRND_NONBLOCK`; it suppresses entropy-readiness retries but permits
+IPC transport scheduling. `GRND_RANDOM`, `GRND_INSECURE` and unknown flags return
+`EINVAL`. Success may return a completed prefix when a later request fails.
+`getentropy` fills at most 256 bytes or fails; failure can leave a written prefix.
+Both use an infinite caller deadline without a hidden transport timeout. Missing
+authority reports `EACCES`, not-ready reports `EAGAIN` in nonblocking mode, and
+provider failure reports `EIO`. Startup does not require a random capability.

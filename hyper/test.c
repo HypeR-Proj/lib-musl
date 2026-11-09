@@ -13,6 +13,7 @@
 #ifdef __HYPER__
 #include <sched.h>
 #include <sys/time.h>
+#include <sys/random.h>
 #include <threads.h>
 #include <unistd.h>
 #include <hyper/startup.h>
@@ -23,6 +24,33 @@
 #endif
 
 #define CHECK(condition) do { if (!(condition)) return __LINE__; } while (0)
+
+#ifdef __HYPER__
+static int random_probe(void)
+{
+	unsigned char bytes[400];
+	size_t done = 0;
+	while (done < sizeof(bytes)) {
+		ssize_t count = getrandom(bytes + done, sizeof(bytes) - done, 0);
+		CHECK(count > 0 && (size_t)count <= sizeof(bytes) - done);
+		done += (size_t)count;
+	}
+	CHECK(!getentropy(bytes, 256));
+	ssize_t nonblocking = getrandom(bytes, 1, GRND_NONBLOCK);
+	CHECK(nonblocking == 1 || (nonblocking == -1 && errno == EAGAIN));
+	CHECK(!getentropy(NULL, 0) && getrandom(NULL, 0, 0) == 0);
+	CHECK(getrandom(bytes, 1, GRND_RANDOM) == -1 && errno == EINVAL);
+	CHECK(getrandom(bytes, 1, GRND_INSECURE) == -1 && errno == EINVAL);
+	CHECK(getentropy(bytes, 257) == -1 && errno == EIO);
+	/* Success and contract checks only: do not log bytes or claim that their
+	 * statistical appearance proves security. */
+	size_t written;
+	const char message[] = "C_RANDOM_OK\n";
+	CHECK(!hyper_runtime_stdio_write(1, message, sizeof(message) - 1, &written));
+	CHECK(written == sizeof(message) - 1);
+	return 0;
+}
+#endif
 
 static int compare(const void *a, const void *b)
 {
@@ -77,6 +105,10 @@ static int paths(void)
 
 int main(int argc, char **argv)
 {
+#ifdef __HYPER__
+	if (argc == 2 && !strcmp(argv[1], "--random"))
+		return random_probe();
+#endif
 	if (argc == 2 && !strcmp(argv[1], "assert"))
 		assert(!"standard C assertion probe");
 	char *end;

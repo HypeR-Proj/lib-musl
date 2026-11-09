@@ -9,12 +9,31 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/time.h>
+#include <sys/random.h>
 #include <threads.h>
 #include <time.h>
 #include <unistd.h>
 #include <hyper/startup.h>
 #include <hyper/syscall.h>
 #include <hyper/system.h>
+#include <hyper/random.h>
+
+static int64_t random_status;
+static size_t random_count;
+static unsigned random_flags, random_calls;
+hyper_call_result_t hyper_random_read(void *buffer, size_t length, uint32_t flags, uint64_t until)
+{
+    (void)buffer;
+    if (until != UINT64_MAX) abort();
+    random_flags = flags; random_calls++;
+    return (hyper_call_result_t){random_status, random_count == SIZE_MAX ? length : random_count, 0};
+}
+hyper_native_status_t hyper_random_fill(void *buffer, size_t length, uint64_t until)
+{
+    (void)buffer; (void)length;
+    if (until != UINT64_MAX) abort();
+    random_calls++; return random_status;
+}
 
 #define CHECK(c) do { if (!(c)) { printf("adapter-test:%d: %s\n", __LINE__, #c); return 1; } } while (0)
 static int c_errno;
@@ -161,6 +180,34 @@ int main(void)
     acquire_status = 0;
     char longpath[4098]; memset(longpath, 'a', sizeof(longpath)); longpath[4097] = 0;
     CHECK(chdir(longpath) == -1 && errno == ENAMETOOLONG);
+    random_count = SIZE_MAX;
+    CHECK(getrandom(NULL, 0, 0) == 0);
+    CHECK(getrandom(buffer, sizeof(buffer), GRND_NONBLOCK) == sizeof(buffer));
+    CHECK(random_flags == HYPER_RANDOM_NONBLOCK);
+    before = random_calls;
+    CHECK(getrandom(buffer, 1, GRND_RANDOM) == -1 && errno == EINVAL);
+    CHECK(getrandom(buffer, 1, GRND_INSECURE) == -1 && errno == EINVAL);
+    CHECK(getrandom(buffer, SIZE_MAX, 0) == -1 && errno == EINVAL);
+    CHECK(getrandom(NULL, 1, 0) == -1 && errno == EFAULT);
+    CHECK(random_calls == before);
+    random_count = 3; CHECK(getrandom(buffer, 10, 0) == 3);
+    random_count = 11; CHECK(getrandom(buffer, 10, 0) == -1 && errno == EIO);
+    random_count = 0; CHECK(getrandom(buffer, 10, 0) == -1 && errno == EIO);
+    random_status = HYPER_NATIVE_STATUS_WOULD_BLOCK;
+    CHECK(getrandom(buffer, 1, GRND_NONBLOCK) == -1 && errno == EAGAIN);
+    random_status = HYPER_NATIVE_STATUS_CANCELLED;
+    CHECK(getrandom(buffer, 1, 0) == -1 && errno == EINTR);
+    random_status = HYPER_NATIVE_STATUS_PEER_CLOSED;
+    CHECK(getrandom(buffer, 1, 0) == -1 && errno == EIO);
+    random_status = HYPER_NATIVE_STATUS_ACCESS_DENIED;
+    CHECK(getentropy(buffer, 1) == -1 && errno == EACCES);
+    random_status = 0;
+    unsigned char entropy[256]; CHECK(!getentropy(entropy, sizeof(entropy)));
+    CHECK(!getentropy(NULL, 0));
+    before = random_calls;
+    CHECK(getentropy(entropy, 257) == -1 && errno == EIO);
+    CHECK(getentropy(NULL, 1) == -1 && errno == EFAULT);
+    CHECK(random_calls == before);
     puts("Native adapters: PASS");
     return 0;
 }

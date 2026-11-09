@@ -12,7 +12,7 @@ import sys
 
 ROOT = Path(__file__).resolve().parents[1]
 NATIVE_SOURCES = ["hyper/platform.c", "hyper/environment.c", "hyper/system.c",
-                  "hyper/time.c", "hyper/path.c"]
+                  "hyper/time.c", "hyper/path.c", "hyper/random.c"]
 SOURCES = (
     [
         "src/ctype/" + name + ".c"

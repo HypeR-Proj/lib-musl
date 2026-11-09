@@ -26,7 +26,8 @@ def check(workspace, output):
     # Never interpose test adapters on the host C runtime's own startup/cleanup.
     names = ('getenv getpagesize sysconf sched_yield gettimeofday clock_gettime '
              'clock_nanosleep nanosleep sleep usleep thrd_sleep thrd_yield '
-             'chdir getcwd realpath unlink rmdir remove rename link symlink readlink truncate').split()
+             'chdir getcwd realpath unlink rmdir remove rename link symlink readlink truncate '
+             'getrandom getentropy').split()
     command = [os.environ.get('HOST_CC', 'cc'),
                '-std=c17', '-D_GNU_SOURCE=1', '-O1', '-g', '-fno-builtin',
                '-Wall', '-Wextra', '-Werror', '-fsanitize=undefined',
@@ -35,7 +36,7 @@ def check(workspace, output):
     for directory in (headers, workspace / 'stdlib/system/include', workspace / 'sdk/abi/include'):
         command += ['-I', str(directory)]
     command += [str(ROOT / 'hyper' / name) for name in
-                ('environment.c', 'system.c', 'time.c', 'path.c', 'adapter-test.c')]
+                ('environment.c', 'system.c', 'time.c', 'path.c', 'random.c', 'adapter-test.c')]
     binary = output / 'adapter-test'
     subprocess.run(command + ['-o', str(binary)], check=True)
     subprocess.run([str(binary)], check=True)
